@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net7.0-windows</TargetFramework>
+        <RootNamespace>signal_detection</RootNamespace>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1" />
+      <PackageReference Include="ScottPlot" Version="4.1.67" />
+      <PackageReference Include="ScottPlot.WPF" Version="4.1.67" />
+    </ItemGroup>
+
+</Project>
