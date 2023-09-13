@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows;
 using ScottPlot;
@@ -39,6 +40,11 @@ public partial class MainWindow : Window
 
         var length = NudLength.Value ?? 1000;
         var fd = NudFd.Value ?? 1;
+
+        var modSgnlGen = new ModulatedSignalGenerator(new List<bool> { true, false, true }, 1, ModulationType.ASK, 1000d, 100d, 100000d, double.Pi / 2d);
+        var resultSignal = modSgnlGen.GetModuletedSignal(1000, 100);
+        ChartModulatedSignal.Plot.AddSignal(resultSignal.ToArray());
+        ChartModulatedSignal.Refresh();
     }
     private void OnCheckedRbIsAsk(object sender, RoutedEventArgs e)
     {
