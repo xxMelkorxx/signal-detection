@@ -4,14 +4,32 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net7.0-windows</TargetFramework>
         <RootNamespace>signal_detection</RootNamespace>
-        <Nullable>enable</Nullable>
+        <Nullable>disable</Nullable>
         <UseWPF>true</UseWPF>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1" />
-      <PackageReference Include="ScottPlot" Version="4.1.67" />
-      <PackageReference Include="ScottPlot.WPF" Version="4.1.67" />
+        <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.1"/>
+        <PackageReference Include="ScottPlot" Version="4.1.67"/>
+        <PackageReference Include="ScottPlot.WPF" Version="4.1.67"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Resource Include="icons\angle-double-small-down.png"/>
+        <Resource Include="icons\angle-double-small-left.png"/>
+        <Resource Include="icons\angle-double-small-right.png"/>
+        <Resource Include="icons\angle-double-small-up.png"/>
+        <Resource Include="icons\angle-small-left.png"/>
+        <Resource Include="icons\angle-small-right.png"/>
+        <Resource Include="icons\cancel.png"/>
+        <Resource Include="icons\check.png"/>
+        <Resource Include="icons\download.png"/>
+        <Resource Include="icons\pause.png"/>
+        <Resource Include="icons\play-2.png"/>
+        <Resource Include="icons\play.png"/>
+        <Resource Include="icons\unn_logo.ico"/>
+        <Resource Include="icons\unn_logo.png"/>
+        <Resource Include="icons\upload.png"/>
     </ItemGroup>
 
 </Project>

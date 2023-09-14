@@ -13,74 +13,74 @@ public enum ModulationType
 public class ModulatedSignalGenerator
 {
     /// <summary>
-    /// 
+    /// Битовая последовательность.
     /// </summary>
     private List<bool> bitsSequence { get; }
 
     /// <summary>
-    /// 
+    /// Длина битовой последовательности.
     /// </summary>
     private int Nb => bitsSequence.Count;
 
     /// <summary>
-    /// 
+    /// Битрейт.
     /// </summary>
     private int BPS { get; }
 
     /// <summary>
-    /// 
+    /// Частота дискретизации.
     /// </summary>
     private double fd { get; }
 
     /// <summary>
-    /// 
+    /// Тип модуляции сигнала.
     /// </summary>
     private ModulationType Type { get; }
 
     /// <summary>
-    /// 
+    /// Амплитуда несущего сигнала.
     /// </summary>
     private double a0 { get; }
 
     /// <summary>
-    /// 
+    /// Частота несущего сигнала.
     /// </summary>
     private double f0 { get; }
 
     /// <summary>
-    /// 
+    /// Начальная фаза несущего сигнала.
     /// </summary>
     private double phi0 { get; }
 
     /// <summary>
-    /// 
+    /// Временной отрезок одного бита.
     /// </summary>
     private double tb => (double)Nb / BPS;
 
     /// <summary>
-    /// 
+    /// Число отсчётов для полезного сигнала.
     /// </summary>
-    private int length => (int)(tb / dt) + 1;
+    private int length => (int)(tb * Nb / dt) + 1;
 
     /// <summary>
-    /// 
+    /// Шаг по времени.
     /// </summary>
     public double dt => 1d / fd;
 
     /// <summary>
-    /// 
+    /// Цифровой сигнал.
     /// </summary>
-    private List<double> digitalSignal { get; set; }
+    public List<PointD> digitalSignal { get; }
 
     /// <summary>
-    /// 
+    /// Несущий сигнал.
     /// </summary>
-    private List<double> carrierSignal { get; set; }
+    public List<PointD> carrierSignal { get; set; }
 
     /// <summary>
-    /// 
+    /// Модулированный сигнал.
     /// </summary>
-    private List<double> modulatedSignal { get; set; }
+    public List<PointD> modulatedSignal { get; set; }
 
     /// <summary>
     /// 
@@ -98,53 +98,46 @@ public class ModulatedSignalGenerator
         this.f0 = f0;
         this.phi0 = phi0;
 
-        this.digitalSignal = new List<double>();
-        this.carrierSignal = new List<double>();
-        this.modulatedSignal = new List<double>();
+        this.digitalSignal = new List<PointD>();
+        this.carrierSignal = new List<PointD>();
+        this.modulatedSignal = new List<PointD>();
     }
 
-    public List<double> GetModuletedSignal(int n, double insertStart, double noise = 0)
+    public List<PointD> GetModuletedSignal(int n, double insertStart, double noise = 0)
     {
-        var countNumbers = insertStart + length < n ? n : 2 * n - (insertStart - length);
-        var resultSignal = new List<double>();
-        switch (Type)
+        var countNumbers = insertStart + length < n ? n : insertStart + length;
+        var resultSignal = new List<PointD>();
+        
+        for (var i = 0; i < countNumbers; i++)
         {
-            case ModulationType.ASK:
-                for (var i = 0; i < countNumbers; i++)
-                {
-                    resultSignal.Add(a0 * Math.Sin(f0 * dt + phi0));
-                    for (var j = insertStart; j < this.length; j++)
-                    {
-                        
-                        // TO DO
-                    }
-                }
-
-                break;
-            case ModulationType.FSK:
-                for (var i = 0; i < countNumbers; i++)
-                {
-                    resultSignal.Add(a0 * Math.Sin(f0 * dt + phi0));
-                    for (var j = insertStart; j < this.length; j++)
-                    {
-                        // TO DO
-                    }
-                }
+            var ti = dt * i;
+            var yi = a0 * Math.Sin(f0 * dt * i + phi0);
+            
+            carrierSignal.Add(new PointD(ti, yi));
+                    
+            // Формирование цифрового сигнала.
+            if (i >= insertStart && i < insertStart + this.length - 1)
+            {
+                var tj = dt * (i - insertStart);
+                var yj = double.Sign(bitsSequence[(int)(tj / tb)] ? 1 : 0);
+                digitalSignal.Add(new PointD(tj, yj));
                 
-                break;
-            case ModulationType.PSK:
-                for (var i = 0; i < countNumbers; i++)
+                switch (Type)
                 {
-                    resultSignal.Add(a0 * Math.Sin(f0 * dt + phi0));
-                    for (var j = insertStart; j < this.length; j++)
-                    {
-                        // TO DO
-                    }
+                    case ModulationType.ASK:
+                        resultSignal.Add(new PointD(ti, yi));
+                        break;
+                    case ModulationType.FSK:
+                        resultSignal.Add(new PointD(ti, yi));
+                        break;
+                    case ModulationType.PSK:
+                        resultSignal.Add(new PointD(ti, yi));
+                        break;
                 }
-                
-                break;
+            }
+            else
+                resultSignal.Add(new PointD(ti, yi));
         }
-
         return resultSignal;
     }
 }
