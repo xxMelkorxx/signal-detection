@@ -12,7 +12,7 @@ public partial class MainWindow : Window
 {
     private ModulatedSignalGenerator _signalGenerator;
     private ModulationType _modulationType;
-    private Random _rnd = new (DateTime.Now.Millisecond);
+    private Random _rnd = new(DateTime.Now.Millisecond);
 
     public MainWindow()
     {
@@ -22,14 +22,14 @@ public partial class MainWindow : Window
 
         // Настройка графиков.
         SetUpChart(ChartBitSequence, "Битовая последовательность", "Время, с", "Амплитуда");
-        SetUpChart(ChartCarrierSignal, "Несущий сигнал", "Время, с", "Амплитуда");
         SetUpChart(ChartModulatedSignal, "Модулированный сигнал", "Время, с", "Амплитуда");
+        SetUpChart(ChartResultSignal, "Результирующий сигнал", "Время, с", "Амплитуда");
     }
 
     private void OnLoadedMainWindow(object sender, RoutedEventArgs e)
     {
         OnClickButtonGenerateBitsSequence(null, null);
-        OnGenerateSignal(null,  null);
+        OnGenerateSignal(null, null);
     }
 
     private void OnGenerateSignal(object sender, EventArgs e)
@@ -40,46 +40,58 @@ public partial class MainWindow : Window
         var phi0 = NudPhi0.Value ?? 0;
         var length = NudLength.Value + 1 ?? 1001;
         var fd = NudFd.Value ?? 1;
-        var deltaA = NudDeltaA.Value ?? 10;
-        var deltaF = NudDeltaF.Value ?? 1000;
-        var deltaPhi = NudDeltaPhi.Value ?? double.Pi / 2d;
-        
+        var insertStart = NudInsert.Value ?? 100;
+        var args = new List<double>();
+        switch (_modulationType)
+        {
+            case ModulationType.ASK:
+                args.Add(NudA1.Value ?? 5);
+                args.Add(NudA2.Value ?? 15);
+                break;
+            case ModulationType.FSK:
+                args.Add(NudF1.Value ?? 500);
+                args.Add(NudF2.Value ?? 1500);
+                break;
+            case ModulationType.PSK:
+                break;
+        }
+
         // Получение битовой последовательности.
         var bitsSequenceList = TbBitsSequence.Text.Replace(" ", "").ToList();
         var bitsSequence = new List<bool>();
         bitsSequenceList.ForEach(b => bitsSequence.Add(b == '1'));
-        
+
         // Формирование модулированного сигнала.
         _signalGenerator = new ModulatedSignalGenerator(bitsSequence, bps, _modulationType, fd, a0, f0, phi0);
-        var resultSignal = _signalGenerator.GetModuletedSignal(length, 100);
+        var resultSignal = _signalGenerator.GetModuletedSignal(length, insertStart, args);
         var digitalSignal = _signalGenerator.digitalSignal;
-        var carrierSignal = _signalGenerator.carrierSignal;
-        
+        var modulatedSignal = _signalGenerator.modulatedSignal;
+
         // Очистка графиков.
         ChartBitSequence.Plot.Clear();
-        ChartCarrierSignal.Plot.Clear();
         ChartModulatedSignal.Plot.Clear();
-        
+        ChartResultSignal.Plot.Clear();
+
         // Отрисовка графиков.
         ChartBitSequence.Plot.AddSignalXY(digitalSignal.Select(p => p.X).ToArray(), digitalSignal.Select(p => p.Y).ToArray());
         ChartBitSequence.Plot.SetAxisLimits(xMin: 0, xMax: digitalSignal.Max(p => p.X), yMin: -2, yMax: 2);
         ChartBitSequence.Refresh();
-        
-        ChartCarrierSignal.Plot.AddSignalXY(carrierSignal.Select(p => p.X).ToArray(), carrierSignal.Select(p => p.Y).ToArray());
-        ChartCarrierSignal.Plot.SetAxisLimits(xMin: 0, xMax: carrierSignal.Max(p => p.X), yMin: -a0 * 1.2, yMax: a0 * 1.2);
-        ChartCarrierSignal.Refresh();
-        
-        ChartModulatedSignal.Plot.AddSignalXY(resultSignal.Select(p => p.X).ToArray(), resultSignal.Select(p => p.Y).ToArray());
-        ChartModulatedSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -a0 * 1.2, yMax: a0 * 1.25);
+
+        ChartModulatedSignal.Plot.AddSignalXY(modulatedSignal.Select(p => p.X).ToArray(), modulatedSignal.Select(p => p.Y).ToArray());
+        var yMax1 = modulatedSignal.Max(p => double.Abs(p.Y));
+        ChartModulatedSignal.Plot.SetAxisLimits(xMin: 0, xMax: modulatedSignal.Max(p => p.X), yMin: -yMax1 * 1.2, yMax: yMax1 * 1.2);
         ChartModulatedSignal.Refresh();
+
+        ChartResultSignal.Plot.AddSignalXY(resultSignal.Select(p => p.X).ToArray(), resultSignal.Select(p => p.Y).ToArray());
+        ChartResultSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -yMax1 * 1.2, yMax: yMax1 * 1.25);
+        ChartResultSignal.Refresh();
     }
-    
+
     private void OnClickButtonAddZero(object sender, RoutedEventArgs e)
     {
         TbBitsSequence.Text += TbBitsSequence.Text.Length % 5 == 0 ? " " : "";
         TbBitsSequence.Text += '0';
         ButtonGenerateSignal.IsEnabled = true;
-        
     }
 
     private void OnClickButtonAddOne(object sender, RoutedEventArgs e)
@@ -98,7 +110,7 @@ public partial class MainWindow : Window
     private void OnClickButtonGenerateBitsSequence(object sender, RoutedEventArgs e)
     {
         var length = NudNb.Value ?? 16;
-        var bits = Convert.ToString(_rnd.Next(0, (int)double.Pow(2, length) - 1), 2).PadRight(length, '0'); 
+        var bits = Convert.ToString(_rnd.Next(0, (int)double.Pow(2, length) - 1), 2).PadRight(length, '0');
         TbBitsSequence.Clear();
         for (var i = 0; i < bits.Length; i++)
         {
@@ -145,6 +157,8 @@ public partial class MainWindow : Window
         chart.Plot.YAxis.MinorGrid(enable: true, color: Color.FromArgb(30, Color.Black), lineStyle: LineStyle.Dot);
         chart.Plot.Margins(x: 0.0, y: 0.8);
         chart.Plot.SetAxisLimits(xMin: 0);
+        chart.Configuration.Quality = QualityMode.High;
+        chart.Configuration.DpiStretch = false;
         chart.Refresh();
     }
 }

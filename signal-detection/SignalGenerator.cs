@@ -73,15 +73,10 @@ public class ModulatedSignalGenerator
     public List<PointD> digitalSignal { get; }
 
     /// <summary>
-    /// Несущий сигнал.
-    /// </summary>
-    public List<PointD> carrierSignal { get; set; }
-
-    /// <summary>
     /// Модулированный сигнал.
     /// </summary>
-    public List<PointD> modulatedSignal { get; set; }
-
+    public List<PointD> modulatedSignal { get; }
+    
     /// <summary>
     /// 
     /// </summary>
@@ -99,11 +94,10 @@ public class ModulatedSignalGenerator
         this.phi0 = phi0;
 
         this.digitalSignal = new List<PointD>();
-        this.carrierSignal = new List<PointD>();
         this.modulatedSignal = new List<PointD>();
     }
 
-    public List<PointD> GetModuletedSignal(int n, double insertStart, double noise = 0)
+    public List<PointD> GetModuletedSignal(int n, int insertStart, List<double> args, double noise = 0)
     {
         var countNumbers = insertStart + length < n ? n : insertStart + length;
         var resultSignal = new List<PointD>();
@@ -111,24 +105,35 @@ public class ModulatedSignalGenerator
         for (var i = 0; i < countNumbers; i++)
         {
             var ti = dt * i;
-            var yi = a0 * Math.Sin(f0 * dt * i + phi0);
+            var yi = double.Sin(f0 * dt * i + phi0);
             
-            carrierSignal.Add(new PointD(ti, yi));
-                    
-            // Формирование цифрового сигнала.
             if (i >= insertStart && i < insertStart + this.length - 1)
             {
-                var tj = dt * (i - insertStart);
-                var yj = double.Sign(bitsSequence[(int)(tj / tb)] ? 1 : 0);
-                digitalSignal.Add(new PointD(tj, yj));
-                
+                var j = i - insertStart;
+                var tj = dt * j;
+                var bj = double.Sign(bitsSequence[(int)(tj / tb)] ? 1 : 0);
+                digitalSignal.Add(new PointD(tj, bj));
+
+                double yj;
                 switch (Type)
                 {
                     case ModulationType.ASK:
-                        resultSignal.Add(new PointD(ti, yi));
+                        yj = bj == 0 ? args[0] * yi : args[1] * yi;
+                        modulatedSignal.Add(new PointD(tj, yj));
+                        resultSignal.Add(new PointD(ti, yj));
                         break;
                     case ModulationType.FSK:
-                        resultSignal.Add(new PointD(ti, yi));
+                        if (j == 0)
+                            yj = a0 * double.Sin((bj == 0 ? args[0] : args[1]) * ti);
+                        else
+                        {
+                            var shift = 0d;
+                            if ((int)digitalSignal[j - 1].Y != (int)digitalSignal[j].Y)
+                                shift = double.Asin(digitalSignal[j - 1].Y);
+                            yj =  a0 * double.Sin((bj == 0 ? args[0] : args[1]) * ti + shift);
+                        }
+                        modulatedSignal.Add(new PointD(tj, yj));
+                        resultSignal.Add(new PointD(ti, yj));
                         break;
                     case ModulationType.PSK:
                         resultSignal.Add(new PointD(ti, yi));
@@ -136,7 +141,7 @@ public class ModulatedSignalGenerator
                 }
             }
             else
-                resultSignal.Add(new PointD(ti, yi));
+                resultSignal.Add(new PointD(ti, a0 * yi));
         }
         return resultSignal;
     }

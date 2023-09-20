@@ -28,9 +28,9 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <WpfPlot Grid.Row="0" Name="ChartBitSequence" FontFamily="JetBrains Mono" />
-                <WpfPlot Grid.Row="1" Name="ChartCarrierSignal" FontFamily="JetBrains Mono" />
-                <WpfPlot Grid.Row="2" Name="ChartModulatedSignal" FontFamily="JetBrains Mono" />
+                <WpfPlot Grid.Row="0" Name="ChartBitSequence" FontFamily="JetBrains Mono"/>
+                <WpfPlot Grid.Row="1" Name="ChartModulatedSignal" FontFamily="JetBrains Mono" />
+                <WpfPlot Grid.Row="2" Name="ChartResultSignal" FontFamily="JetBrains Mono"/>
             </Grid>
         </GroupBox>
         <StackPanel Grid.Column="1">
@@ -43,7 +43,7 @@
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Битрейт (bps), бит/с</Label>
-                        <xctk:IntegerUpDown Name="NudBps" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="10" Value="500" />
+                        <xctk:IntegerUpDown Name="NudBps" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="10" Value="1000" />
                     </WrapPanel>
                     <Label>Битовая последовательность:</Label>
                     <Grid>
@@ -83,7 +83,7 @@
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Частота (f₀), Гц</Label>
-                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="100" Value="100" />
+                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="500" Value="5000" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Начальная фаза (φ₀), рад</Label>
@@ -91,11 +91,11 @@
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Число отсчётов</Label>
-                        <xctk:IntegerUpDown Name="NudLength" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="10000" Increment="500" Value="1000" />
+                        <xctk:IntegerUpDown Name="NudLength" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="10000" Increment="500" Value="5000" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Частота дискретизации</Label>
-                        <xctk:DoubleUpDown Name="NudFd" TextAlignment="Right" Width="75" Height="25" Minimum="1000" Maximum="10000000" Increment="1000" Value="1000" />
+                        <xctk:DoubleUpDown Name="NudFd" TextAlignment="Right" Width="75" Height="25" Minimum="1000" Maximum="10000000" Increment="1000" Value="10000" />
                     </WrapPanel>
                 </StackPanel>
             </GroupBox>
@@ -109,15 +109,23 @@
                     <RadioButton Content="ASK" Name="RbIsAsk" Checked="OnCheckedRbIsAsk" />
                     <StackPanel Name="GbAskParams">
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                            <Label>Порог изменения амплитуды (ΔА), у.е.</Label>
-                            <xctk:DoubleUpDown Name="NudDeltaA" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="10" FormatString="F1" Value="10" />
+                            <Label>Нижний порог амплитуды (А₁), у.е.</Label>
+                            <xctk:DoubleUpDown Name="NudA1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="1" FormatString="F1" Value="5" />
+                        </WrapPanel>
+                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                            <Label>Верхний порог амплитуды (А₂), у.е.</Label>
+                            <xctk:DoubleUpDown Name="NudA2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="1" FormatString="F1" Value="15" />
                         </WrapPanel>
                     </StackPanel>
                     <RadioButton Content="FSK" Name="RbIsFsk" Checked="OnCheckedRbIsFsk" />
                     <StackPanel Name="GbFskParams">
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                            <Label>Сдвиг по частоте (Δf), Гц</Label>
-                            <xctk:DoubleUpDown Name="NudDeltaF" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="1000" Value="1000" />
+                            <Label>Нижний порог частоты (f₁), Гц</Label>
+                            <xctk:DoubleUpDown Name="NudF1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="3000" />
+                        </WrapPanel>
+                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                            <Label>Верхний порог частоты (f₂), Гц</Label>
+                            <xctk:DoubleUpDown Name="NudF2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="7000" />
                         </WrapPanel>
                     </StackPanel>
                     <RadioButton Content="PSK" Name="RbIsPsk" Checked="OnCheckedRbIsPsk" />
