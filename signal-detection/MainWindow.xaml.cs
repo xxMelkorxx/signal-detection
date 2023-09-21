@@ -17,17 +17,17 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+    }
 
+    private void OnLoadedMainWindow(object sender, RoutedEventArgs e)
+    {
         RbIsAsk.IsChecked = true;
 
         // Настройка графиков.
         SetUpChart(ChartBitSequence, "Битовая последовательность", "Время, с", "Амплитуда");
         SetUpChart(ChartModulatedSignal, "Модулированный сигнал", "Время, с", "Амплитуда");
         SetUpChart(ChartResultSignal, "Результирующий сигнал", "Время, с", "Амплитуда");
-    }
-
-    private void OnLoadedMainWindow(object sender, RoutedEventArgs e)
-    {
+        
         OnClickButtonGenerateBitsSequence(null, null);
         OnGenerateSignal(null, null);
     }
@@ -79,11 +79,11 @@ public partial class MainWindow : Window
 
         ChartModulatedSignal.Plot.AddSignalXY(modulatedSignal.Select(p => p.X).ToArray(), modulatedSignal.Select(p => p.Y).ToArray());
         var yMax1 = modulatedSignal.Max(p => double.Abs(p.Y));
-        ChartModulatedSignal.Plot.SetAxisLimits(xMin: 0, xMax: modulatedSignal.Max(p => p.X), yMin: -yMax1 * 1.2, yMax: yMax1 * 1.2);
+        ChartModulatedSignal.Plot.SetAxisLimits(xMin: 0, xMax: modulatedSignal.Max(p => p.X), yMin: -yMax1 * 1.5, yMax: yMax1 * 1.5);
         ChartModulatedSignal.Refresh();
 
         ChartResultSignal.Plot.AddSignalXY(resultSignal.Select(p => p.X).ToArray(), resultSignal.Select(p => p.Y).ToArray());
-        ChartResultSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -yMax1 * 1.2, yMax: yMax1 * 1.25);
+        ChartResultSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -yMax1 * 1.5, yMax: yMax1 * 1.5);
         ChartResultSignal.Refresh();
     }
 
@@ -110,7 +110,11 @@ public partial class MainWindow : Window
     private void OnClickButtonGenerateBitsSequence(object sender, RoutedEventArgs e)
     {
         var length = NudNb.Value ?? 16;
-        var bits = Convert.ToString(_rnd.Next(0, (int)double.Pow(2, length) - 1), 2).PadRight(length, '0');
+        var bits = string.Empty;
+        for (var i = 8; i <= length - 8 - length % 8; i += 8)
+            bits += Convert.ToString(_rnd.Next(0, 255), 2).PadLeft(8, '0');
+        bits += Convert.ToString(_rnd.Next(0, (int)double.Pow(2, 8 + length % 8) - 1), 2).PadLeft(8 + length % 8, '0');
+        
         TbBitsSequence.Clear();
         for (var i = 0; i < bits.Length; i++)
         {
@@ -127,7 +131,7 @@ public partial class MainWindow : Window
         _modulationType = ModulationType.ASK;
         GbAskParams.IsEnabled = true;
         GbFskParams.IsEnabled = false;
-        GbPskParams.IsEnabled = false;
+        // GbPskParams.IsEnabled = false;
     }
 
     private void OnCheckedRbIsFsk(object sender, RoutedEventArgs e)
@@ -135,7 +139,7 @@ public partial class MainWindow : Window
         _modulationType = ModulationType.FSK;
         GbAskParams.IsEnabled = false;
         GbFskParams.IsEnabled = true;
-        GbPskParams.IsEnabled = false;
+        // GbPskParams.IsEnabled = false;
     }
 
     private void OnCheckedRbIsPsk(object sender, RoutedEventArgs e)
@@ -143,7 +147,7 @@ public partial class MainWindow : Window
         _modulationType = ModulationType.PSK;
         GbAskParams.IsEnabled = false;
         GbFskParams.IsEnabled = false;
-        GbPskParams.IsEnabled = true;
+        // GbPskParams.IsEnabled = true;
     }
 
     private static void SetUpChart(IPlotControl chart, string title, string labelX, string labelY)

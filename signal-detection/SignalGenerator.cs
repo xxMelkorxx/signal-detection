@@ -76,7 +76,7 @@ public class ModulatedSignalGenerator
     /// Модулированный сигнал.
     /// </summary>
     public List<PointD> modulatedSignal { get; }
-    
+
     /// <summary>
     /// 
     /// </summary>
@@ -101,48 +101,43 @@ public class ModulatedSignalGenerator
     {
         var countNumbers = insertStart + length < n ? n : insertStart + length;
         var resultSignal = new List<PointD>();
-        
+
         for (var i = 0; i < countNumbers; i++)
         {
             var ti = dt * i;
-            var yi = double.Sin(f0 * dt * i + phi0);
-            
+            var yi = a0 * double.Sin(2 * double.Pi * f0 * ti + phi0);
+
             if (i >= insertStart && i < insertStart + this.length - 1)
             {
-                var j = i - insertStart;
-                var tj = dt * j;
-                var bj = double.Sign(bitsSequence[(int)(tj / tb)] ? 1 : 0);
-                digitalSignal.Add(new PointD(tj, bj));
+                // var j = i - insertStart;
+                var tj = dt * insertStart;
+                var bj = double.Sign(bitsSequence[(int)((ti - tj) / tb)] ? 1 : 0);
+                digitalSignal.Add(new PointD(ti - tj, bj));
 
                 double yj;
                 switch (Type)
                 {
                     case ModulationType.ASK:
-                        yj = bj == 0 ? args[0] * yi : args[1] * yi;
-                        modulatedSignal.Add(new PointD(tj, yj));
+                        yj = (bj == 0 ? args[0] : args[1]) * double.Sin(2 * double.Pi * f0 * ti + phi0);
+                        modulatedSignal.Add(new PointD(ti - tj, yj));
                         resultSignal.Add(new PointD(ti, yj));
                         break;
                     case ModulationType.FSK:
-                        if (j == 0)
-                            yj = a0 * double.Sin((bj == 0 ? args[0] : args[1]) * ti);
-                        else
-                        {
-                            var shift = 0d;
-                            if ((int)digitalSignal[j - 1].Y != (int)digitalSignal[j].Y)
-                                shift = double.Asin(digitalSignal[j - 1].Y);
-                            yj =  a0 * double.Sin((bj == 0 ? args[0] : args[1]) * ti + shift);
-                        }
-                        modulatedSignal.Add(new PointD(tj, yj));
+                        yj = a0 * double.Sin(2 * double.Pi * (bj == 0 ? args[0] : args[1]) * ti + phi0);
+                        modulatedSignal.Add(new PointD(ti - tj, yj));
                         resultSignal.Add(new PointD(ti, yj));
                         break;
                     case ModulationType.PSK:
-                        resultSignal.Add(new PointD(ti, yi));
+                        yj = a0 * double.Sin(2 * double.Pi * f0 * ti + phi0 + (bj == 1 ? double.Pi : 0));
+                        modulatedSignal.Add(new PointD(ti - tj, yj));
+                        resultSignal.Add(new PointD(ti, yj));
                         break;
                 }
             }
             else
-                resultSignal.Add(new PointD(ti, a0 * yi));
+                resultSignal.Add(new PointD(ti, yi));
         }
+
         return resultSignal;
     }
 }

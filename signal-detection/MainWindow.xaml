@@ -83,7 +83,7 @@
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Частота (f₀), Гц</Label>
-                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="500" Value="5000" />
+                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="100" Value="500" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Начальная фаза (φ₀), рад</Label>
@@ -121,20 +121,20 @@
                     <StackPanel Name="GbFskParams">
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                             <Label>Нижний порог частоты (f₁), Гц</Label>
-                            <xctk:DoubleUpDown Name="NudF1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="3000" />
+                            <xctk:DoubleUpDown Name="NudF1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="250" />
                         </WrapPanel>
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                             <Label>Верхний порог частоты (f₂), Гц</Label>
-                            <xctk:DoubleUpDown Name="NudF2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="7000" />
+                            <xctk:DoubleUpDown Name="NudF2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="750" />
                         </WrapPanel>
                     </StackPanel>
                     <RadioButton Content="PSK" Name="RbIsPsk" Checked="OnCheckedRbIsPsk" />
-                    <StackPanel Name="GbPskParams">
-                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                            <Label>Шаг изменения фазы (Δφ), рад</Label>
-                            <xctk:DoubleUpDown Name="NudDeltaPhi" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10" Increment="1" FormatString="F2" Value="1.57" />
-                        </WrapPanel>
-                    </StackPanel>
+                    <!-- <StackPanel Name="GbPskParams"> -->
+                    <!--     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0"> -->
+                    <!--         <Label>Шаг изменения фазы (Δφ), рад</Label> -->
+                    <!--         <xctk:DoubleUpDown Name="NudDeltaPhi" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10" Increment="1" FormatString="F2" Value="1.57" /> -->
+                    <!--     </WrapPanel> -->
+                    <!-- </StackPanel> -->
                 </StackPanel>
             </GroupBox>
             <!-- #################################################################################### -->
