@@ -26,11 +26,13 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <WpfPlot Grid.Row="0" Name="ChartBitSequence" FontFamily="JetBrains Mono"/>
+                <WpfPlot Grid.Row="0" Name="ChartBitSequence" FontFamily="JetBrains Mono" />
                 <WpfPlot Grid.Row="1" Name="ChartModulatedSignal" FontFamily="JetBrains Mono" />
-                <WpfPlot Grid.Row="2" Name="ChartResultSignal" FontFamily="JetBrains Mono"/>
+                <WpfPlot Grid.Row="2" Name="ChartResultSignal" FontFamily="JetBrains Mono" />
+                <WpfPlot Grid.Row="3" Name="ChartCrossCorrelation" FontFamily="JetBrains Mono" />
             </Grid>
         </GroupBox>
         <StackPanel Grid.Column="1">
@@ -48,29 +50,29 @@
                     <Label>Битовая последовательность:</Label>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="8*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="8*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        
+
                         <TextBox Name="TbBitsSequence" Grid.Column="0" HorizontalAlignment="Stretch" Height="43"
-                                 TextAlignment="Right" FontSize="18" FontWeight="Bold" 
+                                 TextAlignment="Right" FontSize="18" FontWeight="Bold"
                                  HorizontalScrollBarVisibility="Visible"
                                  IsReadOnly="True" />
                         <Button Name="ButtonAddZero" Grid.Column="1" HorizontalAlignment="Right"
                                 Content=" 0 " FontSize="20" FontWeight="Bold" ToolTip="Добавить '0'"
-                                Click="OnClickButtonAddZero"/>
+                                Click="OnClickButtonAddZero" />
                         <Button Name="ButtonAddOne" Grid.Column="2" HorizontalAlignment="Right"
                                 Content=" 1 " FontSize="20" FontWeight="Bold" ToolTip="Добавить '1'"
-                                Click="OnClickButtonAddOne"/>
+                                Click="OnClickButtonAddOne" />
                         <Button Name="ButtonGenerateBits" Grid.Column="3" HorizontalAlignment="Right"
                                 Content=" G " FontSize="20" FontWeight="Bold" ToolTip="Сгенерировать последовательность"
-                                Click="OnClickButtonGenerateBitsSequence"/>
+                                Click="OnClickButtonGenerateBitsSequence" />
                         <Button Name="ButtonClearBits" Grid.Column="4" HorizontalAlignment="Right"
                                 Content=" D " FontSize="20" FontWeight="Bold" ToolTip="Очистить поле"
-                                Click="OnClickButtonClearBits"/>
+                                Click="OnClickButtonClearBits" />
                     </Grid>
                 </StackPanel>
             </GroupBox>
@@ -83,7 +85,7 @@
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Частота (f₀), Гц</Label>
-                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="100" Value="500" />
+                        <xctk:DoubleUpDown Name="NudF0" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="1000000" Increment="50" Value="250" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Начальная фаза (φ₀), рад</Label>
@@ -104,9 +106,9 @@
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Начало вставки сигнала</Label>
-                        <xctk:IntegerUpDown Name="NudInsert" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="10000" Increment="100" Value="100" />
+                        <xctk:IntegerUpDown Name="NudInsert" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="10000" Increment="100" Value="500" />
                     </WrapPanel>
-                    <RadioButton Content="ASK" Name="RbIsAsk" Checked="OnCheckedRbIsAsk" />
+                    <RadioButton Content="Амплитудная манипуляция" Name="RbIsAsk" Checked="OnCheckedRbIsAsk" />
                     <StackPanel Name="GbAskParams">
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                             <Label>Нижний порог амплитуды (А₁), у.е.</Label>
@@ -117,24 +119,44 @@
                             <xctk:DoubleUpDown Name="NudA2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="1" FormatString="F1" Value="15" />
                         </WrapPanel>
                     </StackPanel>
-                    <RadioButton Content="FSK" Name="RbIsFsk" Checked="OnCheckedRbIsFsk" />
+                    <RadioButton Content="Частотная манипуляция" Name="RbIsFsk" Checked="OnCheckedRbIsFsk" />
                     <StackPanel Name="GbFskParams">
+                        <!-- <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0"> -->
+                        <!--     <Label>Нижний порог частоты (f₁), Гц</Label> -->
+                        <!--     <xctk:DoubleUpDown Name="NudF1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="250" /> -->
+                        <!-- </WrapPanel> -->
+                        <!-- <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0"> -->
+                        <!--     <Label>Верхний порог частоты (f₂), Гц</Label> -->
+                        <!--     <xctk:DoubleUpDown Name="NudF2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="750" /> -->
+                        <!-- </WrapPanel> -->
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                            <Label>Нижний порог частоты (f₁), Гц</Label>
-                            <xctk:DoubleUpDown Name="NudF1" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="250" />
-                        </WrapPanel>
-                        <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                            <Label>Верхний порог частоты (f₂), Гц</Label>
-                            <xctk:DoubleUpDown Name="NudF2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000000" Increment="500" Value="750" />
+                            <Label>Сдвиг по частосте (Δf), Гц</Label>
+                            <xctk:DoubleUpDown Name="NudDeltaF" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="50" Value="50" />
                         </WrapPanel>
                     </StackPanel>
-                    <RadioButton Content="PSK" Name="RbIsPsk" Checked="OnCheckedRbIsPsk" />
+                    <RadioButton Content="Фазовая манипуляция" Name="RbIsPsk" Checked="OnCheckedRbIsPsk" />
                     <!-- <StackPanel Name="GbPskParams"> -->
                     <!--     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0"> -->
                     <!--         <Label>Шаг изменения фазы (Δφ), рад</Label> -->
                     <!--         <xctk:DoubleUpDown Name="NudDeltaPhi" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10" Increment="1" FormatString="F2" Value="1.57" /> -->
                     <!--     </WrapPanel> -->
                     <!-- </StackPanel> -->
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Выходные характеристики">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Сдвиг сигнала (ожидаемый), c</Label>
+                        <TextBox Name="TbInsertStartExpected"
+                                 TextAlignment="Right" VerticalContentAlignment="Center" IsReadOnly="True"
+                                 Width="75" Height="25" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Сдвиг сигнала (фактический), c</Label>
+                        <TextBox Name="TbInsertStartActual"
+                                 TextAlignment="Right" VerticalContentAlignment="Center" IsReadOnly="True"
+                                 Width="75" Height="25" />
+                    </WrapPanel>
                 </StackPanel>
             </GroupBox>
             <!-- #################################################################################### -->

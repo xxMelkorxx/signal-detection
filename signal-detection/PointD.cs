@@ -4,7 +4,9 @@ namespace signal_detection;
 
 public struct PointD
 {
-    public double X, Y;
+    public double X { get; set; }
+    
+    public double Y { get; set; }
 
     public PointD(double x, double y)
     {

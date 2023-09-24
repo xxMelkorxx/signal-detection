@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace signal_detection;
 
@@ -114,7 +115,7 @@ public class ModulatedSignalGenerator
                 var bj = double.Sign(bitsSequence[(int)((ti - tj) / tb)] ? 1 : 0);
                 digitalSignal.Add(new PointD(ti - tj, bj));
 
-                double yj;
+                double yj, shift = 0d;
                 switch (Type)
                 {
                     case ModulationType.ASK:
@@ -123,7 +124,8 @@ public class ModulatedSignalGenerator
                         resultSignal.Add(new PointD(ti, yj));
                         break;
                     case ModulationType.FSK:
-                        yj = a0 * double.Sin(2 * double.Pi * (bj == 0 ? args[0] : args[1]) * ti + phi0);
+                        // yj = a0 * double.Sin(2 * double.Pi * (bj == 0 ? args[0] : args[1]) * ti + phi0);
+                        yj = a0 * double.Sin(2 * double.Pi * (f0 + (bj == 0 ? -1 : 1) * args[0]) * ti + phi0);
                         modulatedSignal.Add(new PointD(ti - tj, yj));
                         resultSignal.Add(new PointD(ti, yj));
                         break;
@@ -139,5 +141,35 @@ public class ModulatedSignalGenerator
         }
 
         return resultSignal;
+    }
+
+    /// <summary>
+    /// Взаимная корреляция двух сигналов.
+    /// </summary>
+    /// <param name="s1"></param>
+    /// <param name="s2"></param>
+    /// <param name="maxIndex"></param>
+    /// <returns></returns>
+    public static List<PointD> GetCrossCorrelation(List<PointD> s1, List<PointD> s2, out int maxIndex)
+    {
+        var result = new List<PointD>();
+        var maxCorr = double.MinValue;
+        var index = 0;
+        for (var i = 0; i < s1.Count - s2.Count + 1; i++)
+        {
+            var corr = 0d;
+            for (var j = 0; j < s2.Count; j++)
+                corr += s1[i + j].Y * s2[j].Y;
+            result.Add(new PointD(s1[i].X, corr / s1.Count));
+
+            if (result[i].Y > maxCorr)
+            {
+                maxCorr = result[i].Y;
+                index = i;
+            }
+        }
+
+        maxIndex = index;
+        return result;
     }
 }

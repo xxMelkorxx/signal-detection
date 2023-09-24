@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         SetUpChart(ChartBitSequence, "Битовая последовательность", "Время, с", "Амплитуда");
         SetUpChart(ChartModulatedSignal, "Модулированный сигнал", "Время, с", "Амплитуда");
         SetUpChart(ChartResultSignal, "Результирующий сигнал", "Время, с", "Амплитуда");
+        SetUpChart(ChartCrossCorrelation, "Взаимная корреляция сигналов", "Время, с", "Амплитуда");
         
         OnClickButtonGenerateBitsSequence(null, null);
         OnGenerateSignal(null, null);
@@ -49,8 +50,9 @@ public partial class MainWindow : Window
                 args.Add(NudA2.Value ?? 15);
                 break;
             case ModulationType.FSK:
-                args.Add(NudF1.Value ?? 500);
-                args.Add(NudF2.Value ?? 1500);
+                // args.Add(NudF1.Value ?? 500);
+                // args.Add(NudF2.Value ?? 1500);
+                args.Add(NudDeltaF.Value ?? 50);
                 break;
             case ModulationType.PSK:
                 break;
@@ -66,11 +68,16 @@ public partial class MainWindow : Window
         var resultSignal = _signalGenerator.GetModuletedSignal(length, insertStart, args);
         var digitalSignal = _signalGenerator.digitalSignal;
         var modulatedSignal = _signalGenerator.modulatedSignal;
+        var crossCorrelation = ModulatedSignalGenerator.GetCrossCorrelation(resultSignal, modulatedSignal, out var maxIndex);
 
+        TbInsertStartExpected.Text = (insertStart * _signalGenerator.dt).ToString("F3");
+        TbInsertStartActual.Text = (maxIndex * _signalGenerator.dt).ToString("F3");
+        
         // Очистка графиков.
         ChartBitSequence.Plot.Clear();
         ChartModulatedSignal.Plot.Clear();
         ChartResultSignal.Plot.Clear();
+        ChartCrossCorrelation.Plot.Clear();
 
         // Отрисовка графиков.
         ChartBitSequence.Plot.AddSignalXY(digitalSignal.Select(p => p.X).ToArray(), digitalSignal.Select(p => p.Y).ToArray());
@@ -78,13 +85,18 @@ public partial class MainWindow : Window
         ChartBitSequence.Refresh();
 
         ChartModulatedSignal.Plot.AddSignalXY(modulatedSignal.Select(p => p.X).ToArray(), modulatedSignal.Select(p => p.Y).ToArray());
-        var yMax1 = modulatedSignal.Max(p => double.Abs(p.Y));
-        ChartModulatedSignal.Plot.SetAxisLimits(xMin: 0, xMax: modulatedSignal.Max(p => p.X), yMin: -yMax1 * 1.5, yMax: yMax1 * 1.5);
+        var yMax = modulatedSignal.Max(p => double.Abs(p.Y));
+        ChartModulatedSignal.Plot.SetAxisLimits(xMin: 0, xMax: modulatedSignal.Max(p => p.X), yMin: -yMax * 1.5, yMax: yMax * 1.5);
         ChartModulatedSignal.Refresh();
 
         ChartResultSignal.Plot.AddSignalXY(resultSignal.Select(p => p.X).ToArray(), resultSignal.Select(p => p.Y).ToArray());
-        ChartResultSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -yMax1 * 1.5, yMax: yMax1 * 1.5);
+        ChartResultSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -yMax * 1.5, yMax: yMax * 1.5);
         ChartResultSignal.Refresh();
+        
+        ChartCrossCorrelation.Plot.AddSignalXY(crossCorrelation.Select(p => p.X).ToArray(), crossCorrelation.Select(p => p.Y).ToArray());
+        yMax = crossCorrelation.Max(p => double.Abs(p.Y));
+        ChartCrossCorrelation.Plot.SetAxisLimits(xMin: 0, xMax: crossCorrelation.Max(p => p.X), yMin: -yMax * 1.5, yMax: yMax * 1.5);
+        ChartCrossCorrelation.Refresh();
     }
 
     private void OnClickButtonAddZero(object sender, RoutedEventArgs e)
