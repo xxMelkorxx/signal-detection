@@ -56,12 +56,12 @@ public class ModulatedSignalGenerator
     /// <summary>
     /// Временной отрезок одного бита.
     /// </summary>
-    private double tb => (double)Nb / BPS;
+    private double tb => 1d / BPS;
 
     /// <summary>
     /// Число отсчётов для полезного сигнала.
     /// </summary>
-    private int length => (int)(tb * Nb / dt) + 1;
+    private int length => (int)(tb * Nb / dt);
 
     /// <summary>
     /// Шаг по времени.
@@ -82,7 +82,9 @@ public class ModulatedSignalGenerator
     /// 
     /// </summary>
     private double Noise { get; }
-
+    
+    private Random _rnd = new(DateTime.Now.Millisecond);
+    
     public ModulatedSignalGenerator(List<bool> bitsSequence, int bps, ModulationType type, double fd, double a0, double f0, double phi0)
     {
         this.bitsSequence = new List<bool>();
@@ -100,44 +102,52 @@ public class ModulatedSignalGenerator
 
     public List<PointD> GetModuletedSignal(int n, int insertStart, List<double> args, double noise = 0)
     {
-        var countNumbers = insertStart + length < n ? n : insertStart + length;
+        var countNumbers = insertStart + this.length < n ? n : insertStart + this.length;
         var resultSignal = new List<PointD>();
-
+        var insertTime = dt * insertStart;
+        
+        // Генерации последовательности для длинного сигнала.
+        var bits = string.Empty;
+        for (var i = 0; i < 16; i++)
+            bits += Convert.ToString(_rnd.Next(0, 255), 2).PadLeft(8, '0');
+        var secondBitsSequence = new List<bool>();
+        bits.ToList().ForEach(b => secondBitsSequence.Add(b == '1'));
+        
+        double yi;
         for (var i = 0; i < countNumbers; i++)
         {
             var ti = dt * i;
-            var yi = a0 * double.Sin(2 * double.Pi * f0 * ti + phi0);
-
+            // Вставка сигнала.
             if (i >= insertStart && i < insertStart + this.length - 1)
             {
-                // var j = i - insertStart;
-                var tj = dt * insertStart;
-                var bj = double.Sign(bitsSequence[(int)((ti - tj) / tb)] ? 1 : 0);
-                digitalSignal.Add(new PointD(ti - tj, bj));
-
-                double yj, shift = 0d;
-                switch (Type)
+                var bi1 = double.Sign(bitsSequence[(int)((ti - insertTime) / tb)] ? 1 : 0);
+                digitalSignal.Add(new PointD(ti - insertTime, bi1));
+                // var shift = 0d;
+                // if (i != insertStart && (int)digitalSignal[i - insertStart - 1].Y != bi1)
+                    // shift = double.Asin(modulatedSignal[i - insertStart - 1].Y / a0);
+                yi = Type switch
                 {
-                    case ModulationType.ASK:
-                        yj = (bj == 0 ? args[0] : args[1]) * double.Sin(2 * double.Pi * f0 * ti + phi0);
-                        modulatedSignal.Add(new PointD(ti - tj, yj));
-                        resultSignal.Add(new PointD(ti, yj));
-                        break;
-                    case ModulationType.FSK:
-                        // yj = a0 * double.Sin(2 * double.Pi * (bj == 0 ? args[0] : args[1]) * ti + phi0);
-                        yj = a0 * double.Sin(2 * double.Pi * (f0 + (bj == 0 ? -1 : 1) * args[0]) * ti + phi0);
-                        modulatedSignal.Add(new PointD(ti - tj, yj));
-                        resultSignal.Add(new PointD(ti, yj));
-                        break;
-                    case ModulationType.PSK:
-                        yj = a0 * double.Sin(2 * double.Pi * f0 * ti + phi0 + (bj == 1 ? double.Pi : 0));
-                        modulatedSignal.Add(new PointD(ti - tj, yj));
-                        resultSignal.Add(new PointD(ti, yj));
-                        break;
-                }
-            }
-            else
+                    ModulationType.ASK => (bi1 == 0 ? args[0] : args[1]) * double.Sin(2 * double.Pi * f0 * ti + phi0),
+                    ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi1 == 0 ? -1 : 1) * args[0]) * ti + phi0),
+                    ModulationType.PSK => a0 * double.Sin(2 * double.Pi * f0 * ti + phi0 + (bi1 == 1 ? double.Pi : 0)),
+                    _ => 0
+                };
+                modulatedSignal.Add(new PointD(ti - insertTime, yi));
                 resultSignal.Add(new PointD(ti, yi));
+            }
+            // Формирование длинного сигнала.
+            else
+            {
+                var bi2 = double.Sign(secondBitsSequence[(int)(ti / ((double)countNumbers / secondBitsSequence.Count * dt))] ? 1 : 0);
+                yi = Type switch
+                {
+                    ModulationType.ASK => (bi2 == 0 ? a0 * 0.75 : a0 * 1.25) * double.Sin(2 * double.Pi * f0 * ti + phi0),
+                    ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi2 == 0 ? -1 : 1) * 25) * ti + phi0),
+                    ModulationType.PSK => a0 * double.Sin(2 * double.Pi * f0 * ti + double.Pi / 4 + (bi2 == 1 ? double.Pi : 0)),
+                    _ => 0
+                };
+                resultSignal.Add(new PointD(ti, yi));
+            }
         }
 
         return resultSignal;

@@ -41,11 +41,11 @@
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Длина последовательности, бит</Label>
-                        <xctk:IntegerUpDown Name="NudNb" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="128" Increment="1" Value="16" />
+                        <xctk:IntegerUpDown Name="NudNb" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="128" Increment="1" Value="128" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Битрейт (bps), бит/с</Label>
-                        <xctk:IntegerUpDown Name="NudBps" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="10" Value="1000" />
+                        <xctk:IntegerUpDown Name="NudBps" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="10" Value="500" />
                     </WrapPanel>
                     <Label>Битовая последовательность:</Label>
                     <Grid>
@@ -93,7 +93,7 @@
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Число отсчётов</Label>
-                        <xctk:IntegerUpDown Name="NudLength" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="10000" Increment="500" Value="5000" />
+                        <xctk:IntegerUpDown Name="NudLength" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="100000" Increment="500" Value="5000" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Частота дискретизации</Label>
