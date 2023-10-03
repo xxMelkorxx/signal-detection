@@ -99,16 +99,30 @@
                         <Label>Частота дискретизации</Label>
                         <xctk:DoubleUpDown Name="NudFd" TextAlignment="Right" Width="75" Height="25" Minimum="1000" Maximum="10000000" Increment="1000" Value="10000" />
                     </WrapPanel>
+                    <CheckBox Name="CbIsNoise" HorizontalAlignment="Right" Margin="0 5 0 0"
+                              Click="OnCheckedCheckBoxIsNoise">
+                        Наложить шум?
+                    </CheckBox>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>ОСШ, дБ</Label>
+                        <xctk:DoubleUpDown Name="NudSnr" TextAlignment="Right" 
+                                           Width="75" Height="25" IsEnabled="False"
+                                           Minimum="-100" Maximum="100" Increment="1" Value="5" />
+                    </WrapPanel>
                 </StackPanel>
             </GroupBox>
             <!-- #################################################################################### -->
             <GroupBox Header="Параметры модуляции">
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                        <Label>Начало вставки сигнала</Label>
-                        <xctk:IntegerUpDown Name="NudInsert" TextAlignment="Right" Width="75" Height="25" Minimum="100" Maximum="10000" Increment="100" Value="500" />
+                        <Label>Начало вставки (номер бита)</Label>
+                        <xctk:IntegerUpDown Name="NudStartBit" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="10000" Increment="5" Value="25" />
                     </WrapPanel>
-                    <RadioButton Content="Амплитудная манипуляция" Name="RbIsAsk" Checked="OnCheckedRbIsAsk" />
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Общее число битов</Label>
+                        <xctk:IntegerUpDown Name="NudCountBits" TextAlignment="Right" Width="75" Height="25" Minimum="10" Maximum="10000" Increment="10" Value="200" />
+                    </WrapPanel>
+                    <RadioButton Content="Амплитудная манипуляция" Name="RbIsAsk" Margin="0 5 0 0" Checked="OnCheckedRbIsAsk" />
                     <StackPanel Name="GbAskParams">
                         <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                             <Label>Нижний порог амплитуды (А₁), у.е.</Label>
@@ -119,7 +133,7 @@
                             <xctk:DoubleUpDown Name="NudA2" TextAlignment="Right" Width="75" Height="25" Minimum="0" Maximum="1000" Increment="1" FormatString="F1" Value="15" />
                         </WrapPanel>
                     </StackPanel>
-                    <RadioButton Content="Частотная манипуляция" Name="RbIsFsk" Checked="OnCheckedRbIsFsk" />
+                    <RadioButton Content="Частотная манипуляция" Name="RbIsFsk" Margin="0 5 0 0" Checked="OnCheckedRbIsFsk" />
                     <StackPanel Name="GbFskParams">
                         <!-- <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0"> -->
                         <!--     <Label>Нижний порог частоты (f₁), Гц</Label> -->
@@ -134,7 +148,7 @@
                             <xctk:DoubleUpDown Name="NudDeltaF" TextAlignment="Right" Width="75" Height="25" Minimum="1" Maximum="10000" Increment="50" Value="50" />
                         </WrapPanel>
                     </StackPanel>
-                    <RadioButton Content="Фазовая манипуляция" Name="RbIsPsk" Checked="OnCheckedRbIsPsk" />
+                    <RadioButton Content="Фазовая манипуляция" Name="RbIsPsk" Margin="0 5 0 0" Checked="OnCheckedRbIsPsk" />
                     <!-- <StackPanel Name="GbPskParams"> -->
                     <!--     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0"> -->
                     <!--         <Label>Шаг изменения фазы (Δφ), рад</Label> -->

@@ -25,10 +25,10 @@ public partial class MainWindow : Window
 
         // Настройка графиков.
         SetUpChart(ChartBitSequence, "Битовая последовательность", "Время, с", "Амплитуда");
-        SetUpChart(ChartModulatedSignal, "Модулированный сигнал", "Время, с", "Амплитуда");
-        SetUpChart(ChartResultSignal, "Результирующий сигнал", "Время, с", "Амплитуда");
+        SetUpChart(ChartModulatedSignal, "Искомый сигнал", "Время, с", "Амплитуда");
+        SetUpChart(ChartResultSignal, "Исследуемый сигнал", "Время, с", "Амплитуда");
         SetUpChart(ChartCrossCorrelation, "Взаимная корреляция сигналов", "Время, с", "Амплитуда");
-        
+
         OnClickButtonGenerateBitsSequence(null, null);
         OnGenerateSignal(null, null);
     }
@@ -41,7 +41,8 @@ public partial class MainWindow : Window
         var phi0 = NudPhi0.Value ?? 0;
         var length = NudLength.Value + 1 ?? 1001;
         var fd = NudFd.Value ?? 1;
-        var insertStart = NudInsert.Value ?? 100;
+        var startBit = NudStartBit.Value ?? 100;
+        var countBits = NudCountBits.Value ?? 200;
         var args = new List<double>();
         switch (_modulationType)
         {
@@ -65,14 +66,24 @@ public partial class MainWindow : Window
 
         // Формирование модулированного сигнала.
         _signalGenerator = new ModulatedSignalGenerator(bitsSequence, bps, _modulationType, fd, a0, f0, phi0);
-        var resultSignal = _signalGenerator.GetModuletedSignal(length, insertStart, args);
+        var resultSignal = _signalGenerator.GenerateSignals(countBits, startBit, args);
         var digitalSignal = _signalGenerator.digitalSignal;
         var modulatedSignal = _signalGenerator.modulatedSignal;
-        var crossCorrelation = ModulatedSignalGenerator.GetCrossCorrelation(resultSignal, modulatedSignal, out var maxIndex);
-
-        TbInsertStartExpected.Text = (insertStart * _signalGenerator.dt).ToString("F3");
-        TbInsertStartActual.Text = (maxIndex * _signalGenerator.dt).ToString("F3");
         
+        // Наложение шума на сигналы.
+        if (CbIsNoise.IsChecked ?? false)
+        {
+            ModulatedSignalGenerator.MakeNoise(ref resultSignal, NudSnr.Value ?? 5);
+            ModulatedSignalGenerator.MakeNoise(ref modulatedSignal, NudSnr.Value ?? 5);
+        }
+        
+        // Вычисление взаимной корреляции.
+        var crossCorrelation = ModulatedSignalGenerator.GetCrossCorrelation(resultSignal, modulatedSignal, out var maxIndex);
+        var shift = maxIndex * _signalGenerator.dt;
+        
+        TbInsertStartExpected.Text = ((double)startBit / bps).ToString("F3");
+        TbInsertStartActual.Text = shift.ToString("F3");
+
         // Очистка графиков.
         ChartBitSequence.Plot.Clear();
         ChartModulatedSignal.Plot.Clear();
@@ -91,11 +102,15 @@ public partial class MainWindow : Window
 
         ChartResultSignal.Plot.AddSignalXY(resultSignal.Select(p => p.X).ToArray(), resultSignal.Select(p => p.Y).ToArray());
         ChartResultSignal.Plot.SetAxisLimits(xMin: 0, xMax: resultSignal.Max(p => p.X), yMin: -yMax * 1.5, yMax: yMax * 1.5);
+        ChartResultSignal.Plot.AddVerticalLine(startBit * _signalGenerator.tb, Color.Green);
+        ChartResultSignal.Plot.AddVerticalLine(shift, Color.Red);
         ChartResultSignal.Refresh();
-        
+
         ChartCrossCorrelation.Plot.AddSignalXY(crossCorrelation.Select(p => p.X).ToArray(), crossCorrelation.Select(p => p.Y).ToArray());
         yMax = crossCorrelation.Max(p => double.Abs(p.Y));
         ChartCrossCorrelation.Plot.SetAxisLimits(xMin: 0, xMax: crossCorrelation.Max(p => p.X), yMin: -yMax * 1.5, yMax: yMax * 1.5);
+        ChartCrossCorrelation.Plot.AddVerticalLine(startBit * _signalGenerator.tb, Color.Green);
+        ChartCrossCorrelation.Plot.AddVerticalLine(shift, Color.Red);
         ChartCrossCorrelation.Refresh();
     }
 
@@ -122,11 +137,8 @@ public partial class MainWindow : Window
     private void OnClickButtonGenerateBitsSequence(object sender, RoutedEventArgs e)
     {
         var length = NudNb.Value ?? 16;
-        var bits = string.Empty;
-        for (var i = 8; i <= length - 8 - length % 8; i += 8)
-            bits += Convert.ToString(_rnd.Next(0, 255), 2).PadLeft(8, '0');
-        bits += Convert.ToString(_rnd.Next(0, (int)double.Pow(2, 8 + length % 8) - 1), 2).PadLeft(8 + length % 8, '0');
-        
+        var bits = ModulatedSignalGenerator.GenerateBitsSequence(length);
+
         TbBitsSequence.Clear();
         for (var i = 0; i < bits.Length; i++)
         {
@@ -160,6 +172,12 @@ public partial class MainWindow : Window
         GbAskParams.IsEnabled = false;
         GbFskParams.IsEnabled = false;
         // GbPskParams.IsEnabled = true;
+    }
+    
+    private void OnCheckedCheckBoxIsNoise(object sender, RoutedEventArgs e)
+    {
+        NudSnr.IsEnabled = CbIsNoise.IsChecked ?? false;
+        OnGenerateSignal(null, null);
     }
 
     private static void SetUpChart(IPlotControl chart, string title, string labelX, string labelY)

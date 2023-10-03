@@ -21,17 +21,17 @@ public class ModulatedSignalGenerator
     /// <summary>
     /// Длина битовой последовательности.
     /// </summary>
-    private int Nb => bitsSequence.Count;
+    public int Nb => bitsSequence.Count;
 
     /// <summary>
     /// Битрейт.
     /// </summary>
-    private int BPS { get; }
+    public int BPS { get; }
 
     /// <summary>
     /// Частота дискретизации.
     /// </summary>
-    private double fd { get; }
+    public double fd { get; }
 
     /// <summary>
     /// Тип модуляции сигнала.
@@ -41,27 +41,27 @@ public class ModulatedSignalGenerator
     /// <summary>
     /// Амплитуда несущего сигнала.
     /// </summary>
-    private double a0 { get; }
+    public double a0 { get; }
 
     /// <summary>
     /// Частота несущего сигнала.
     /// </summary>
-    private double f0 { get; }
+    public double f0 { get; }
 
     /// <summary>
     /// Начальная фаза несущего сигнала.
     /// </summary>
-    private double phi0 { get; }
+    public double phi0 { get; }
 
     /// <summary>
     /// Временной отрезок одного бита.
     /// </summary>
-    private double tb => 1d / BPS;
+    public double tb => 1d / BPS;
 
     /// <summary>
     /// Число отсчётов для полезного сигнала.
     /// </summary>
-    private int length => (int)(tb * Nb / dt);
+    public int length => (int)(tb * Nb / dt);
 
     /// <summary>
     /// Шаг по времени.
@@ -78,13 +78,6 @@ public class ModulatedSignalGenerator
     /// </summary>
     public List<PointD> modulatedSignal { get; }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    private double Noise { get; }
-    
-    private Random _rnd = new(DateTime.Now.Millisecond);
-    
     public ModulatedSignalGenerator(List<bool> bitsSequence, int bps, ModulationType type, double fd, double a0, double f0, double phi0)
     {
         this.bitsSequence = new List<bool>();
@@ -99,60 +92,81 @@ public class ModulatedSignalGenerator
         this.digitalSignal = new List<PointD>();
         this.modulatedSignal = new List<PointD>();
     }
-
-    public List<PointD> GetModuletedSignal(int n, int insertStart, List<double> args, double noise = 0)
+    
+    public List<PointD> GenerateSignals(int countBits, int startBit, List<double> args, double noise = 0)
     {
-        var countNumbers = insertStart + this.length < n ? n : insertStart + this.length;
+        var countNumbers = (int)(countBits * tb / dt);
         var resultSignal = new List<PointD>();
-        var insertTime = dt * insertStart;
-        
-        // Генерации последовательности для длинного сигнала.
-        var bits = string.Empty;
-        for (var i = 0; i < 16; i++)
-            bits += Convert.ToString(_rnd.Next(0, 255), 2).PadLeft(8, '0');
-        var secondBitsSequence = new List<bool>();
-        bits.ToList().ForEach(b => secondBitsSequence.Add(b == '1'));
-        
-        double yi;
+
+        // Генерация длинного сигнала.
+        var longBitsSequence = new List<bool>();
+        GenerateBitsSequence(startBit).ToList().ForEach(b => longBitsSequence.Add(b == '1'));
+        bitsSequence.ForEach(b => longBitsSequence.Add(b));
+        GenerateBitsSequence(countBits - Nb - startBit).ToList().ForEach(b => longBitsSequence.Add(b == '1'));
+
         for (var i = 0; i < countNumbers; i++)
         {
             var ti = dt * i;
+            var bidx = (int)(ti / tb);
+            var bi = double.Sign(longBitsSequence[bidx] ? 1 : 0);
+            var yi = Type switch
+            {
+                ModulationType.ASK => (bi == 0 ? args[0] : args[1]) * double.Sin(2 * double.Pi * f0 * ti + phi0),
+                ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi == 0 ? -1 : 1) * args[0]) * ti + phi0),
+                ModulationType.PSK => a0 * double.Sin(2 * double.Pi * f0 * ti + phi0 + (bi == 1 ? double.Pi : 0)),
+                _ => 0
+            };
+            resultSignal.Add(new PointD(ti, yi));
+
             // Вставка сигнала.
-            if (i >= insertStart && i < insertStart + this.length - 1)
+            if (bidx >= startBit && bidx < startBit + Nb)
             {
-                var bi1 = double.Sign(bitsSequence[(int)((ti - insertTime) / tb)] ? 1 : 0);
-                digitalSignal.Add(new PointD(ti - insertTime, bi1));
-                // var shift = 0d;
-                // if (i != insertStart && (int)digitalSignal[i - insertStart - 1].Y != bi1)
-                    // shift = double.Asin(modulatedSignal[i - insertStart - 1].Y / a0);
-                yi = Type switch
-                {
-                    ModulationType.ASK => (bi1 == 0 ? args[0] : args[1]) * double.Sin(2 * double.Pi * f0 * ti + phi0),
-                    ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi1 == 0 ? -1 : 1) * args[0]) * ti + phi0),
-                    ModulationType.PSK => a0 * double.Sin(2 * double.Pi * f0 * ti + phi0 + (bi1 == 1 ? double.Pi : 0)),
-                    _ => 0
-                };
-                modulatedSignal.Add(new PointD(ti - insertTime, yi));
-                resultSignal.Add(new PointD(ti, yi));
-            }
-            // Формирование длинного сигнала.
-            else
-            {
-                var bi2 = double.Sign(secondBitsSequence[(int)(ti / ((double)countNumbers / secondBitsSequence.Count * dt))] ? 1 : 0);
-                yi = Type switch
-                {
-                    ModulationType.ASK => (bi2 == 0 ? a0 * 0.75 : a0 * 1.25) * double.Sin(2 * double.Pi * f0 * ti + phi0),
-                    ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi2 == 0 ? -1 : 1) * 25) * ti + phi0),
-                    ModulationType.PSK => a0 * double.Sin(2 * double.Pi * f0 * ti + double.Pi / 4 + (bi2 == 1 ? double.Pi : 0)),
-                    _ => 0
-                };
-                resultSignal.Add(new PointD(ti, yi));
+                digitalSignal.Add(new PointD(ti - startBit * tb, bi));
+                modulatedSignal.Add(new PointD(ti - startBit * tb, yi));
             }
         }
 
         return resultSignal;
     }
+    
+    /// <summary>
+    /// Генерация случайного числа с нормальным распределением.
+    /// </summary>
+    /// <param name="min">Минимальное число (левая граница)</param>
+    /// <param name="max">Максимальное число (правая граница)</param>
+    /// <param name="n">Количество случайных чисел, которые необходимо суммировать для достижения нормального распределения</param>
+    /// <returns>Случайное нормально распределённое число</returns>
+    private static double GetNormalRandom(double min, double max, int n = 12)
+    {
+        var rnd = new Random(Guid.NewGuid().GetHashCode());
+        var sum = 0d;
+        for (var i = 0; i < n; i++)
+            sum += rnd.NextDouble() * (max - min) + min;
+        return sum / n;
+    }
 
+    /// <summary>
+    /// Наложить шум на сигнал.
+    /// </summary>
+    /// <param name="signal"></param>
+    /// <param name="snrDb"></param>
+    /// <returns></returns>
+    public static void MakeNoise(ref List<PointD> signal, double snrDb)
+    {
+        // Генерация белового шума.
+        var noise = new List<double>();
+        for (var i = 0; i < signal.Count; i++)
+            noise.Add(GetNormalRandom(-1d, 1d));
+        
+        // Нормировка шума.
+        var snr = double.Pow(10, snrDb / 10);
+        var norm = double.Sqrt(snr * signal.Sum(p => p.Y * p.Y) / noise.Sum(y => y * y));
+        noise = noise.Select(y => y * norm).ToList();
+        
+        // Наложение шума.
+        signal = signal.Zip(noise, (p, n) => new PointD(p.X, p.Y + n)).ToList();
+    }
+    
     /// <summary>
     /// Взаимная корреляция двух сигналов.
     /// </summary>
@@ -181,5 +195,20 @@ public class ModulatedSignalGenerator
 
         maxIndex = index;
         return result;
+    }
+    
+    /// <summary>
+    /// Генерация 
+    /// </summary>
+    /// <param name="countBits"></param>
+    /// <returns></returns>
+    public static string GenerateBitsSequence(int countBits)
+    {
+        var rnd = new Random(DateTime.Now.Millisecond);
+        var bits = string.Empty;
+        for (var i = 8; i <= countBits - 8 - countBits % 8; i += 8)
+            bits += Convert.ToString(rnd.Next(0, 255), 2).PadLeft(8, '0');
+        bits += Convert.ToString(rnd.Next(0, (int)double.Pow(2, 8 + countBits % 8) - 1), 2).PadLeft(8 + countBits % 8, '0');
+        return bits;
     }
 }
