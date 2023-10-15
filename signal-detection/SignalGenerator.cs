@@ -59,11 +59,6 @@ public class ModulatedSignalGenerator
     public double tb => 1d / BPS;
 
     /// <summary>
-    /// Число отсчётов для полезного сигнала.
-    /// </summary>
-    public int length => (int)(tb * Nb / dt);
-
-    /// <summary>
     /// Шаг по времени.
     /// </summary>
     public double dt => 1d / fd;
@@ -71,38 +66,48 @@ public class ModulatedSignalGenerator
     /// <summary>
     /// Цифровой сигнал.
     /// </summary>
-    public List<PointD> digitalSignal { get; }
+    public List<PointD> bitsSignal { get; }
 
     /// <summary>
-    /// Модулированный сигнал.
+    /// Искомый сигнал.
     /// </summary>
-    public List<PointD> modulatedSignal { get; }
+    public List<PointD> desiredSignal { get; private set; }
 
-    public ModulatedSignalGenerator(List<bool> bitsSequence, int bps, ModulationType type, double fd, double a0, double f0, double phi0)
+    /// <summary>
+    /// Исследуемый сигнал.
+    /// </summary>
+    public List<PointD> researchedSignal { get; private set; }
+
+    /// <summary>
+    /// Взаимная корреляция искомого сигнала с исследуемым.
+    /// </summary>
+    public List<PointD> crossCorrelation { get; }
+
+    public ModulatedSignalGenerator(IReadOnlyDictionary<string, object> sParams)
     {
-        this.bitsSequence = new List<bool>();
-        bitsSequence.ForEach(bit => this.bitsSequence.Add(bit));
-        this.Type = type;
-        this.BPS = bps;
-        this.fd = fd;
-        this.a0 = a0;
-        this.f0 = f0;
-        this.phi0 = phi0;
+        bitsSequence = (List<bool>)sParams["bitsSequence"];
+        Type = (ModulationType)sParams["modulationType"];
+        BPS = (int)sParams["bps"];
+        fd = (double)sParams["fd"];
+        a0 = (double)sParams["a0"];
+        f0 = (double)sParams["f0"];
+        phi0 = (double)sParams["phi0"];
 
-        this.digitalSignal = new List<PointD>();
-        this.modulatedSignal = new List<PointD>();
+        bitsSignal = new List<PointD>();
+        desiredSignal = new List<PointD>();
+        researchedSignal = new List<PointD>();
+        crossCorrelation = new List<PointD>();
     }
-    
-    public List<PointD> GenerateSignals(int countBits, int startBit, List<double> args, double noise = 0)
+
+    public void GenerateSignals(Dictionary<string, object> sParams)
     {
-        var countNumbers = (int)(countBits * tb / dt);
-        var resultSignal = new List<PointD>();
+        var countNumbers = (int)((int)sParams["countBits"] * tb / dt);
 
         // Генерация длинного сигнала.
         var longBitsSequence = new List<bool>();
-        GenerateBitsSequence(startBit).ToList().ForEach(b => longBitsSequence.Add(b == '1'));
+        GenerateBitsSequence((int)sParams["startBit"]).ToList().ForEach(b => longBitsSequence.Add(b == '1'));
         bitsSequence.ForEach(b => longBitsSequence.Add(b));
-        GenerateBitsSequence(countBits - Nb - startBit).ToList().ForEach(b => longBitsSequence.Add(b == '1'));
+        GenerateBitsSequence((int)sParams["countBits"] - Nb - (int)sParams["startBit"]).ToList().ForEach(b => longBitsSequence.Add(b == '1'));
 
         for (var i = 0; i < countNumbers; i++)
         {
@@ -111,24 +116,22 @@ public class ModulatedSignalGenerator
             var bi = double.Sign(longBitsSequence[bidx] ? 1 : 0);
             var yi = Type switch
             {
-                ModulationType.ASK => (bi == 0 ? args[0] : args[1]) * double.Sin(2 * double.Pi * f0 * ti + phi0),
-                ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi == 0 ? -1 : 1) * args[0]) * ti + phi0),
+                ModulationType.ASK => (bi == 0 ? (double)sParams["A1"] : (double)sParams["A2"]) * double.Sin(2 * double.Pi * f0 * ti + phi0),
+                ModulationType.FSK => a0 * double.Sin(2 * double.Pi * (f0 + (bi == 0 ? -1 : 1) * (double)sParams["dF"]) * ti + phi0),
                 ModulationType.PSK => a0 * double.Sin(2 * double.Pi * f0 * ti + phi0 + (bi == 1 ? double.Pi : 0)),
                 _ => 0
             };
-            resultSignal.Add(new PointD(ti, yi));
+            researchedSignal.Add(new PointD(ti, yi));
 
             // Вставка сигнала.
-            if (bidx >= startBit && bidx < startBit + Nb)
+            if (bidx >= (int)sParams["startBit"] && bidx < (int)sParams["startBit"] + Nb)
             {
-                digitalSignal.Add(new PointD(ti - startBit * tb, bi));
-                modulatedSignal.Add(new PointD(ti - startBit * tb, yi));
+                bitsSignal.Add(new PointD(ti - (int)sParams["startBit"] * tb, bi));
+                desiredSignal.Add(new PointD(ti - (int)sParams["startBit"] * tb, yi));
             }
         }
-
-        return resultSignal;
     }
-    
+
     /// <summary>
     /// Генерация случайного числа с нормальным распределением.
     /// </summary>
@@ -146,69 +149,85 @@ public class ModulatedSignalGenerator
     }
 
     /// <summary>
+    /// Генерация отнормированного белого шума.
+    /// </summary>
+    /// <param name="countNumbers">Число отсчётов</param>
+    /// <param name="energySignal">Энергия сигнала, на который накладывается шум</param>
+    /// <param name="snrDb">Уровень шума в дБ</param>
+    /// <returns></returns>
+    private static IEnumerable<double> GenerateNoise(int countNumbers, double energySignal, double snrDb)
+    {
+        var noise = new List<double>();
+        for (var i = 0; i < countNumbers; i++)
+            noise.Add(GetNormalRandom(-1d, 1d));
+
+        // Нормировка шума.
+        var snr = double.Pow(10, -snrDb / 10);
+        var norm = double.Sqrt(snr * energySignal / noise.Sum(y => y * y));
+        
+        return noise.Select(y => y * norm).ToList();
+    }
+
+
+    /// <summary>
     /// Наложить шум на сигнал.
     /// </summary>
-    /// <param name="signal"></param>
     /// <param name="snrDb"></param>
     /// <returns></returns>
-    public static void MakeNoise(ref List<PointD> signal, double snrDb)
+    public void MakeNoise(double snrDb)
     {
-        // Генерация белового шума.
-        var noise = new List<double>();
-        for (var i = 0; i < signal.Count; i++)
-            noise.Add(GetNormalRandom(-1d, 1d));
-        
-        // Нормировка шума.
-        var snr = double.Pow(10, snrDb / 10);
-        var norm = double.Sqrt(snr * signal.Sum(p => p.Y * p.Y) / noise.Sum(y => y * y));
-        noise = noise.Select(y => y * norm).ToList();
-        
-        // Наложение шума.
-        signal = signal.Zip(noise, (p, n) => new PointD(p.X, p.Y + n)).ToList();
+        // Наложение шума на искомый сигнал.
+        desiredSignal = desiredSignal.Zip(
+                GenerateNoise(researchedSignal.Count, researchedSignal.Sum(p => p.Y * p.Y), snrDb),
+                (p, n) => new PointD(p.X, p.Y + n))
+            .ToList();
+
+        // Наложение шума на исследуемый сигнал.
+        researchedSignal = researchedSignal.Zip(
+                GenerateNoise(researchedSignal.Count, researchedSignal.Sum(p => p.Y * p.Y), snrDb),
+                (p, n) => new PointD(p.X, p.Y + n))
+            .ToList();
     }
-    
+
     /// <summary>
-    /// Взаимная корреляция двух сигналов.
+    /// Взаимная корреляция искомого и исследуемого сигнала.
     /// </summary>
-    /// <param name="s1"></param>
-    /// <param name="s2"></param>
     /// <param name="maxIndex"></param>
     /// <returns></returns>
-    public static List<PointD> GetCrossCorrelation(List<PointD> s1, List<PointD> s2, out int maxIndex)
+    public void GetCrossCorrelation(out int maxIndex)
     {
-        var result = new List<PointD>();
         var maxCorr = double.MinValue;
         var index = 0;
-        for (var i = 0; i < s1.Count - s2.Count + 1; i++)
+        for (var i = 0; i < researchedSignal.Count - desiredSignal.Count + 1; i++)
         {
             var corr = 0d;
-            for (var j = 0; j < s2.Count; j++)
-                corr += s1[i + j].Y * s2[j].Y;
-            result.Add(new PointD(s1[i].X, corr / s1.Count));
+            for (var j = 0; j < desiredSignal.Count; j++)
+                corr += researchedSignal[i + j].Y * desiredSignal[j].Y;
+            crossCorrelation.Add(new PointD(researchedSignal[i].X, corr / desiredSignal.Count));
 
-            if (result[i].Y > maxCorr)
+            if (crossCorrelation[i].Y > maxCorr)
             {
-                maxCorr = result[i].Y;
+                maxCorr = crossCorrelation[i].Y;
                 index = i;
             }
         }
 
         maxIndex = index;
-        return result;
     }
-    
+
     /// <summary>
-    /// Генерация 
+    /// Генерация битовой последовательности.
     /// </summary>
     /// <param name="countBits"></param>
     /// <returns></returns>
     public static string GenerateBitsSequence(int countBits)
     {
-        var rnd = new Random(DateTime.Now.Millisecond);
+        var rnd = new Random(Guid.NewGuid().GetHashCode());
         var bits = string.Empty;
         for (var i = 8; i <= countBits - 8 - countBits % 8; i += 8)
             bits += Convert.ToString(rnd.Next(0, 255), 2).PadLeft(8, '0');
         bits += Convert.ToString(rnd.Next(0, (int)double.Pow(2, 8 + countBits % 8) - 1), 2).PadLeft(8 + countBits % 8, '0');
+        
         return bits;
     }
 }
