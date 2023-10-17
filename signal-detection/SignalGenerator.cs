@@ -164,7 +164,7 @@ public class ModulatedSignalGenerator
         // Нормировка шума.
         var snr = double.Pow(10, -snrDb / 10);
         var norm = double.Sqrt(snr * energySignal / noise.Sum(y => y * y));
-        
+
         return noise.Select(y => y * norm).ToList();
     }
 
@@ -227,7 +227,7 @@ public class ModulatedSignalGenerator
         for (var i = 8; i <= countBits - 8 - countBits % 8; i += 8)
             bits += Convert.ToString(rnd.Next(0, 255), 2).PadLeft(8, '0');
         bits += Convert.ToString(rnd.Next(0, (int)double.Pow(2, 8 + countBits % 8) - 1), 2).PadLeft(8 + countBits % 8, '0');
-        
+
         return bits;
     }
 }

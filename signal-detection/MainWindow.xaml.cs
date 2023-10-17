@@ -5,7 +5,6 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using ScottPlot;
 using ScottPlot.Control;
 
@@ -17,7 +16,7 @@ public partial class MainWindow
     private ModulatedSignalGenerator _signalGenerator;
     private ModulationType _modulationType;
     private Dictionary<string, object> _params1, _params2;
-    private List<PointD> _dependenceOnSnr;
+    private Dictionary<ModulationType, List<PointD>> _dependenceOnSnr;
     private int _maxIndex;
 
     public MainWindow()
@@ -176,7 +175,13 @@ public partial class MainWindow
         ButtonConductResearch.Visibility = Visibility.Collapsed;
         ProgressResearch.Visibility = Visibility.Visible;
 
-        _dependenceOnSnr = new List<PointD>();
+        _dependenceOnSnr = new Dictionary<ModulationType, List<PointD>>
+        {
+            [ModulationType.ASK] = new(),
+            [ModulationType.FSK] = new(),
+            [ModulationType.PSK] = new(),
+        };
+
         _params2 = new Dictionary<string, object>
         {
             ["bps"] = NudBps.Value ?? 10,
@@ -190,22 +195,11 @@ public partial class MainWindow
             ["meanOrder"] = NudMeanOrder.Value ?? 50,
             ["snrFrom"] = NudSnrFrom.Value ?? -20,
             ["snrTo"] = NudSnrTo.Value ?? 10,
-            ["snrStep"] = NudSnrStep.Value ?? 0.5
+            ["snrStep"] = NudSnrStep.Value ?? 0.5,
+            ["A1"] = NudA1.Value ?? 5,
+            ["A2"] = NudA2.Value ?? 15,
+            ["dF"] = NudDeltaF.Value ?? 50
         };
-        switch (_modulationType)
-        {
-            case ModulationType.ASK:
-                _params2["A1"] = NudA1.Value ?? 5;
-                _params2["A2"] = NudA2.Value ?? 15;
-                break;
-            case ModulationType.FSK:
-                _params2["dF"] = NudDeltaF.Value ?? 50;
-                break;
-            case ModulationType.PSK:
-                break;
-            default:
-                throw new ArgumentException("Параметр не инициализирован");
-        }
 
         // Получение битовой последовательности.
         var bitsSequence = new List<bool>();
@@ -213,7 +207,7 @@ public partial class MainWindow
         _params2["bitsSequence"] = bitsSequence;
 
         ProgressResearch.Value = 0;
-        ProgressResearch.Maximum = (int)_params2["meanOrder"] * (((int)_params2["snrTo"] - (int)_params2["snrFrom"]) / (double)_params2["snrStep"] + 1);
+        ProgressResearch.Maximum = 3 * (int)_params2["meanOrder"] * (((int)_params2["snrTo"] - (int)_params2["snrFrom"]) / (double)_params2["snrStep"] + 1);
 
         _bgResearch.RunWorkerAsync();
     }
@@ -228,28 +222,31 @@ public partial class MainWindow
             var snrStep = (double)_params2["snrStep"];
             var startBit = (int)_params2["startBit"];
             var index = 0;
-            Parallel.For(0, (int)((snrTo - snrFrom) / snrStep + 2), n =>
+
+            Parallel.For(0, 3, type =>
             {
-                var p = 0;
-                var snr = snrFrom + n * snrStep;
-                Parallel.For(0, meanOrder, i =>
+                Parallel.For(0, (int)((snrTo - snrFrom) / snrStep + 2), n =>
                 {
-                    // Формирование модулированного сигнала.
-                    var sg = new ModulatedSignalGenerator(_params2);
-                    sg.GenerateSignals(_params2);
-                    sg.MakeNoise(snr);
-                    sg.GetCrossCorrelation(out _maxIndex);
-                    if ((startBit - 1) * sg.tb <= _maxIndex * sg.dt && _maxIndex * sg.dt <= (startBit + 1) * sg.tb)
-                        p++;
+                    var p = 0;
+                    var snr = snrFrom + n * snrStep;
+                    Parallel.For(0, meanOrder, i =>
+                    {
+                        // Формирование модулированного сигнала.
+                        _params2["modulationType"] = (ModulationType)type;
+                        var sg = new ModulatedSignalGenerator(_params2);
+                        sg.GenerateSignals(_params2);
+                        sg.MakeNoise(snr);
+                        sg.GetCrossCorrelation(out _maxIndex);
+                        if ((startBit - 1) * sg.tb <= _maxIndex * sg.dt && _maxIndex * sg.dt <= (startBit + 1) * sg.tb)
+                            p++;
 
-                    // Обновление ProgressBar.
-                    _bgResearch.ReportProgress(++index);
+                        // Обновление ProgressBar.
+                        _bgResearch.ReportProgress(++index);
+                    });
+                    _dependenceOnSnr[(ModulationType)type].Add(new PointD(snr, (double)p / meanOrder));
                 });
-
-                //lock (_locker)
-                _dependenceOnSnr.Add(new PointD(snr, (double)p / meanOrder));
+                _dependenceOnSnr[(ModulationType)type] = _dependenceOnSnr[(ModulationType)type].OrderBy(p => p.X).ToList();
             });
-            _dependenceOnSnr = _dependenceOnSnr.OrderBy(p => p.X).ToList();
         }
         catch (Exception exception)
         {
@@ -267,12 +264,27 @@ public partial class MainWindow
         // Отрисовка графика зависимости p от SNR. 
         ChartResearch.Plot.Clear();
         ChartResearch.Plot.AddSignalXY(
-            _dependenceOnSnr.Select(p => p.X).ToArray(),
-            _dependenceOnSnr.Select(p => p.Y).ToArray()
+            _dependenceOnSnr[ModulationType.ASK].Select(p => p.X).ToArray(),
+            _dependenceOnSnr[ModulationType.ASK].Select(p => p.Y).ToArray(),
+            Color.Red,
+            "ASK"
         );
+        ChartResearch.Plot.AddSignalXY(
+            _dependenceOnSnr[ModulationType.FSK].Select(p => p.X).ToArray(),
+            _dependenceOnSnr[ModulationType.FSK].Select(p => p.Y).ToArray(),
+            Color.Green,
+            "FSK"
+        );
+        ChartResearch.Plot.AddSignalXY(
+            _dependenceOnSnr[ModulationType.PSK].Select(p => p.X).ToArray(),
+            _dependenceOnSnr[ModulationType.PSK].Select(p => p.Y).ToArray(),
+            Color.Blue,
+            "PSK"
+        );
+        ChartResearch.Plot.Legend();
         ChartResearch.Plot.SetAxisLimits(xMin: (int)_params2["snrFrom"], xMax: (int)_params2["snrTo"], yMin: 0, yMax: 1);
         ChartResearch.Refresh();
-        
+
         ButtonConductResearch.Visibility = Visibility.Visible;
         ProgressResearch.Visibility = Visibility.Collapsed;
     }
