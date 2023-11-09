@@ -113,7 +113,7 @@ public class ModulatedSignalGenerator
         {
             var ti = dt * i;
             var bidx = (int)(ti / tb);
-            var bi = double.Sign(longBitsSequence[bidx] ? 1 : 0);
+            var bi = longBitsSequence[bidx] ? 1 : 0;
             var yi = Type switch
             {
                 ModulationType.ASK => (bi == 0 ? (double)sParams["A1"] : (double)sParams["A2"]) * double.Sin(2 * double.Pi * f0 * ti + phi0),
@@ -224,10 +224,8 @@ public class ModulatedSignalGenerator
     {
         var rnd = new Random(Guid.NewGuid().GetHashCode());
         var bits = string.Empty;
-        for (var i = 8; i <= countBits - 8 - countBits % 8; i += 8)
-            bits += Convert.ToString(rnd.Next(0, 255), 2).PadLeft(8, '0');
-        bits += Convert.ToString(rnd.Next(0, (int)double.Pow(2, 8 + countBits % 8) - 1), 2).PadLeft(8 + countBits % 8, '0');
-
+        for (var i = 0; i < countBits; i++)
+            bits += rnd.Next(0, 2);
         return bits;
     }
 }
